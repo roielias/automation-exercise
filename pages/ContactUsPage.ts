@@ -16,10 +16,7 @@ export class ContactUsPage {
   }
 
   async submitForm() {
-    const [dialog] = await Promise.all([
-      this.page.waitForEvent("dialog"),
-      this.page.click('input[name="submit"]'),
-    ]);
-    await dialog.accept();
+    this.page.once("dialog", (dialog) => dialog.accept());
+    await this.page.click('input[name="submit"]');
   }
 }
