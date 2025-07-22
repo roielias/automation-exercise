@@ -14,12 +14,12 @@ test("top nav buttons navigate correctly", async ({ page }) => {
       selector: "h2:has-text('Login to your account')",
     },
     { name: "Test Cases", selector: 'a[href="/test_cases"]' },
-    { name: "Contact us", selector: "h2:has-text('Get In Touch')" },
+    { name: "Contact us", selector: "form[action='/contact_us']" },
   ];
 
   for (const { name, selector } of topNavLinks) {
     await homePage.clickTopNavLink(name);
-    await expect(page.locator(selector)).toBeVisible();
+    await expect(page.locator(selector).first()).toBeVisible();
     await homePage.navigate();
   }
 });

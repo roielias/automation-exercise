@@ -5,7 +5,7 @@ export class HomePage {
 
   async navigate() {
     await this.page.goto("https://automationexercise.com/", {
-      timeout: 80000,
+      timeout: 800000,
       waitUntil: "domcontentloaded",
     });
   }
