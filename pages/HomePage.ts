@@ -13,6 +13,8 @@ export class HomePage {
   async clickTopNavLink(linkText: string) {
     if (linkText === "Test Cases") {
       await this.page.locator('a[href="/test_cases"]').nth(0).click();
+    } else if (linkText === "Contact us") {
+      await this.page.locator('a[href="/contact_us"]').first().click();
     } else {
       await this.page.getByRole("link", { name: linkText }).click();
     }
