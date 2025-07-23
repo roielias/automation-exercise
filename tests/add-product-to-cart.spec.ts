@@ -1,16 +1,26 @@
 import { test, expect } from "@playwright/test";
 import { ProductsSection } from "../pages/ProductsSection";
 
-test("should add product to cart and show confirmation modal", async ({
-  page,
-}) => {
+test("simple add to cart test", async ({ page }) => {
   const productsSection = new ProductsSection(page);
-  await productsSection.navigate();
+  productsSection.navigate();
 
-  await productsSection.addProductToCart(0);
+  await page.waitForSelector(".single-products", { state: "visible" });
 
-  await expect(page.locator("#cartModal")).toBeVisible();
+  await page.locator(".single-products").first().hover();
 
-  await page.click('button:has-text("Continue Shopping")');
+  await page
+    .locator(".single-products")
+    .first()
+    .locator(".add-to-cart")
+    .first()
+    .click();
+
+  await expect(page.locator("#cartModal.modal.show")).toBeVisible();
+
+  await expect(page.locator("#cartModal")).toContainText("Added!");
+
+  await page.click(".close-modal");
+
   await expect(page.locator("#cartModal")).toBeHidden();
 });
