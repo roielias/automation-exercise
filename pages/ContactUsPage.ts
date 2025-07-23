@@ -3,6 +3,13 @@ import { Page } from "@playwright/test";
 export class ContactUsPage {
   constructor(private page: Page) {}
 
+  async navigate() {
+    await this.page.goto("https://automationexercise.com/contact_us", {
+      timeout: 800000,
+      waitUntil: "domcontentloaded",
+    });
+  }
+
   async fillForm(
     name: string,
     email: string,
