@@ -11,6 +11,8 @@ export class ProductsSection {
   }
 
   async addProductToCart(index: number) {
+    await this.page.waitForSelector(".single-products", { timeout: 10000 });
+
     const product = this.page.locator(".single-products").nth(index);
 
     await product.scrollIntoViewIfNeeded();
