@@ -22,6 +22,7 @@ test("top nav buttons navigate correctly", async ({ page }) => {
     await expect(page.locator(selector).first()).toBeVisible({
       timeout: 10000,
     });
+
     await homePage.navigate();
   }
 });

@@ -13,24 +13,19 @@ export class ProductsSection {
   async addProductToCart(index: number) {
     const product = this.page.locator(".single-products").nth(index);
 
+    await product.scrollIntoViewIfNeeded();
     await product.hover();
 
     const addToCartButton = product.locator(".product-overlay .add-to-cart");
 
     await expect(addToCartButton).toBeVisible({ timeout: 5000 });
+    await addToCartButton.click();
 
-    await addToCartButton.click({ force: true });
+    const modal = this.page.locator("#cartModal.modal.show");
+    await expect(modal).toBeVisible({ timeout: 5000 });
+    await expect(modal).toContainText("Added!");
 
-    await this.page.waitForSelector("#cartModal", {
-      state: "visible",
-      timeout: 5000,
-    });
-
-    await this.page.click('button:has-text("Continue Shopping")');
-
-    await this.page.waitForSelector("#cartModal", {
-      state: "hidden",
-      timeout: 5000,
-    });
+    await this.page.click(".close-modal");
+    await expect(this.page.locator("#cartModal")).toBeHidden({ timeout: 5000 });
   }
 }
