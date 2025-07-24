@@ -9,3 +9,4 @@ node_modules/
 test-results/
 error-screenshot-*.png
 *.png
+/package-lock.json/
