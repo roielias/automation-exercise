@@ -8,8 +8,9 @@ export class CartPage {
   }
 
   async getCartItems() {
-    const rows = this.page.locator("tr.cart_item");
+    const rows = this.page.locator("tr[id^='product-']");
     const count = await rows.count();
+
     type CartItem = {
       title: string | null;
       quantity: number;
@@ -24,12 +25,12 @@ export class CartPage {
 
       const title = await row.locator(".cart_description h4 a").textContent();
       const quantity = parseInt(
-        (await row.locator(".cart_quantity_input").getAttribute("value")) ||
+        (await row.locator(".cart_quantity button.disabled").textContent()) ||
           "0",
         10
       );
       const unitPrice = parseInt(
-        (await row.locator(".cart_price").innerText()).replace(/[^\d]/g, ""),
+        (await row.locator(".cart_price p").innerText()).replace(/[^\d]/g, ""),
         10
       );
       const totalPrice = parseInt(
@@ -46,28 +47,14 @@ export class CartPage {
     return items;
   }
 
-  async verifyItemTotals() {
-    const itemCount = await this.page.locator(".cart_total_price").count();
+  async clearCart() {
+    await this.navigate();
+    const deleteButtons = this.page.locator(".cart_quantity_delete");
+    const count = await deleteButtons.count();
 
-    for (let i = 0; i < itemCount; i++) {
-      const priceText = await this.page
-        .locator(".cart_price")
-        .nth(i)
-        .innerText();
-      const quantityText = await this.page
-        .locator(".cart_quantity_input")
-        .nth(i)
-        .inputValue();
-      const totalText = await this.page
-        .locator(".cart_total_price")
-        .nth(i)
-        .innerText();
-
-      const unitPrice = parseInt(priceText.replace(/[^\d]/g, ""));
-      const quantity = parseInt(quantityText);
-      const total = parseInt(totalText.replace(/[^\d]/g, ""));
-
-      expect(unitPrice * quantity).toBe(total);
+    for (let i = 0; i < count; i++) {
+      await deleteButtons.nth(0).click();
+      await this.page.waitForTimeout(500);
     }
   }
 

@@ -22,3 +22,20 @@ test("verify cart contents and total sum", async ({ page }) => {
     expect(item.totalPrice).toBe(expectedTotal);
   }
 });
+
+test("clear cart and verify it is empty", async ({ page }) => {
+  const products = new ProductsSection(page);
+  const cart = new CartPage(page);
+
+  await products.navigate();
+
+  await products.addProductToCart(0);
+  await products.addProductToCart(1);
+
+  await cart.navigate();
+
+  await cart.clearCart();
+
+  const itemsAfterClear = await cart.getCartItems();
+  expect(itemsAfterClear.length).toBe(0);
+});

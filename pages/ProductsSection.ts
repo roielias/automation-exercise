@@ -25,7 +25,9 @@ export class ProductsSection {
 
     const modal = this.page.locator("#cartModal.modal.show");
     await expect(modal).toBeVisible({ timeout: 5000 });
-    await expect(modal).toContainText("Added!");
+    await expect(this.page.locator("#cartModal")).toHaveText(/Added!/, {
+      timeout: 5000,
+    });
 
     await this.page.click(".close-modal");
     await expect(this.page.locator("#cartModal")).toBeHidden({ timeout: 5000 });

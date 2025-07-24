@@ -7,17 +7,21 @@ export class CheckoutPage {
     await this.page.waitForURL(/.*\/checkout/, { timeout: 5000 });
   }
 
-  async getTotalOrderAmount(): Promise<number> {
+  async getTotalOrderAmount() {
+    await this.page.waitForSelector(
+      "tr:has(h4:has-text('Total Amount')) .cart_total_price",
+      { timeout: 10000 }
+    );
     const totalText = await this.page
-      .locator("td:has-text('Total Amount') + td")
+      .locator("tr:has(h4:has-text('Total Amount')) .cart_total_price")
       .innerText();
     const numeric = parseInt(totalText.replace(/[^\d]/g, ""), 10);
     return numeric;
   }
 
   async fillOrderForm({ name, card }: { name: string; card: string }) {
-    await this.page.fill('[data-qa="name-on-card"]', name);
-    await this.page.fill('[data-qa="card-number"]', card);
+    await this.page.locator('[data-qa="name-on-card"]').fill(name);
+    await this.page.locator('[data-qa="card-number"]').fill(card);
   }
 
   async submitOrder() {
