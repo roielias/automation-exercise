@@ -3,7 +3,7 @@ import { ProductsSection } from "../pages/ProductsSection";
 
 test("simple add to cart test", async ({ page }) => {
   const productsSection = new ProductsSection(page);
-  productsSection.navigate();
+  await productsSection.navigate();
 
   await page.waitForSelector(".single-products", { state: "visible" });
 

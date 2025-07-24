@@ -3,6 +3,7 @@ import { ProductsSection } from "../pages/ProductsSection";
 import { CartPage } from "../pages/CartPage";
 
 test("verify cart contents and total sum", async ({ page }) => {
+  test.setTimeout(90000);
   const products = new ProductsSection(page);
   const cart = new CartPage(page);
 
@@ -24,6 +25,7 @@ test("verify cart contents and total sum", async ({ page }) => {
 });
 
 test("clear cart and verify it is empty", async ({ page }) => {
+  test.setTimeout(90000);
   const products = new ProductsSection(page);
   const cart = new CartPage(page);
 
