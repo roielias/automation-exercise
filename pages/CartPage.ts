@@ -9,7 +9,7 @@ export class CartPage {
       timeout: 60000,
     });
     await this.page.waitForTimeout(5000);
-    await this.page.waitForLoadState("networkidle", { timeout: 30000 });
+    await this.page.waitForLoadState("load", { timeout: 30000 });
   }
 
   async getCartItems() {
