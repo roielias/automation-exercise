@@ -1,5 +1,6 @@
 import { Page, expect } from "@playwright/test";
 import { ClickHandlerChain } from "../clickHandlerChain";
+import { CheckoutPageSelectors } from "../selectors/checkout.selectors";
 
 /**
  * Interface for order form data
@@ -15,6 +16,7 @@ interface OrderFormData {
 /**
  * Page Object Model class for the checkout and payment process.
  * Handles order confirmation, payment form filling, and order submission.
+ * Updated to use centralized selectors.
  */
 export class CheckoutPage {
   private clickChain: ClickHandlerChain;
@@ -27,37 +29,32 @@ export class CheckoutPage {
    * Verifies that the current page is the checkout page
    */
   async expectOnCheckoutPage() {
-    await expect(this.page).toHaveURL(/.*\/checkout/, { timeout: 30000 });
+    await expect(this.page).toHaveURL(CheckoutPageSelectors.pages.checkout, {
+      timeout: 30000,
+    });
   }
 
   /**
    * Verifies that the current page is the payment page
    */
   async expectOnPaymentPage() {
-    await expect(this.page).toHaveURL(/.*\/payment/, { timeout: 30000 });
+    await expect(this.page).toHaveURL(CheckoutPageSelectors.pages.payment, {
+      timeout: 30000,
+    });
   }
 
   /**
    * Extracts the total order amount from the checkout page
-   *
-   * @returns Promise<number> - The total order amount as a number
-   * @throws Error if total amount cannot be found or parsed
    */
   async getTotalOrderAmount(): Promise<number> {
-    const totalSelector =
-      "tr:has(h4:has-text('Total Amount')) .cart_total_price";
-
     try {
-      await this.page.waitForSelector(totalSelector, { timeout: 30000 });
+      await this.page.waitForSelector(
+        CheckoutPageSelectors.totalAmount.primary,
+        { timeout: 30000 }
+      );
     } catch (error) {
       // Try alternative selectors if primary fails
-      const alternativeSelectors = [
-        ".cart_total_price:last-child",
-        "tr:contains('Total Amount') .cart_total_price",
-        ".total_amount .cart_total_price",
-      ];
-
-      for (const selector of alternativeSelectors) {
+      for (const selector of CheckoutPageSelectors.totalAmount.alternatives) {
         try {
           await this.page.waitForSelector(selector, { timeout: 10000 });
           break;
@@ -67,7 +64,9 @@ export class CheckoutPage {
       }
     }
 
-    const totalElement = this.page.locator(totalSelector);
+    const totalElement = this.page.locator(
+      CheckoutPageSelectors.totalAmount.primary
+    );
     await totalElement.waitFor({ timeout: 15000 });
 
     const totalText = await totalElement.innerText({ timeout: 10000 });
@@ -82,8 +81,6 @@ export class CheckoutPage {
 
   /**
    * Fills out the payment form with provided details
-   *
-   * @param formData - Object containing payment form data
    */
   async fillOrderForm({
     name,
@@ -94,40 +91,51 @@ export class CheckoutPage {
   }: OrderFormData) {
     await this.expectOnPaymentPage();
 
-    await this.page.waitForSelector('[data-qa="name-on-card"]', {
-      timeout: 20000,
-    });
+    await this.page.waitForSelector(
+      CheckoutPageSelectors.paymentForm.nameOnCard,
+      {
+        timeout: 20000,
+      }
+    );
 
     // Fill name on card
-    const nameField = this.page.locator('[data-qa="name-on-card"]');
+    const nameField = this.page.locator(
+      CheckoutPageSelectors.paymentForm.nameOnCard
+    );
     await nameField.waitFor({ timeout: 10000 });
     await nameField.clear();
     await nameField.fill(name);
     await this.page.waitForTimeout(500);
 
     // Fill card number
-    const cardField = this.page.locator('[data-qa="card-number"]');
+    const cardField = this.page.locator(
+      CheckoutPageSelectors.paymentForm.cardNumber
+    );
     await cardField.waitFor({ timeout: 10000 });
     await cardField.clear();
     await cardField.fill(card);
     await this.page.waitForTimeout(500);
 
     // Fill CVC
-    const cvcField = this.page.locator('[placeholder="ex. 311"]');
+    const cvcField = this.page.locator(CheckoutPageSelectors.paymentForm.cvc);
     await cvcField.waitFor({ timeout: 10000 });
     await cvcField.clear();
     await cvcField.fill(cvc);
     await this.page.waitForTimeout(500);
 
     // Fill expiration month
-    const monthField = this.page.locator('[placeholder="MM"]');
+    const monthField = this.page.locator(
+      CheckoutPageSelectors.paymentForm.expiryMonth
+    );
     await monthField.waitFor({ timeout: 10000 });
     await monthField.clear();
     await monthField.fill(expMonth);
     await this.page.waitForTimeout(500);
 
     // Fill expiration year
-    const yearField = this.page.locator('[placeholder="YYYY"]');
+    const yearField = this.page.locator(
+      CheckoutPageSelectors.paymentForm.expiryYear
+    );
     await yearField.waitFor({ timeout: 10000 });
     await yearField.clear();
     await yearField.fill(expYear);
@@ -137,10 +145,11 @@ export class CheckoutPage {
 
   /**
    * Submits the payment form and waits for successful processing
-   * Uses multiple fallback strategies for reliable form submission
    */
   async submitOrder() {
-    const payButton = this.page.locator('[data-qa="pay-button"]');
+    const payButton = this.page.locator(
+      CheckoutPageSelectors.paymentForm.payButton
+    );
     await expect(payButton).toBeVisible({ timeout: 30000 });
     await expect(payButton).toBeEnabled({ timeout: 10000 });
 
@@ -151,7 +160,9 @@ export class CheckoutPage {
       if (!success) {
         throw new Error("Failed to click pay button");
       }
-      await this.page.waitForURL(/.*\/payment_done\/\d+/, { timeout: 40000 });
+      await this.page.waitForURL(CheckoutPageSelectors.pages.success, {
+        timeout: 40000,
+      });
     } catch (error) {
       const newUrl = this.page.url();
 
@@ -162,7 +173,9 @@ export class CheckoutPage {
       try {
         // Second attempt with click chain
         await this.clickChain.clickWithTimeout(payButton, 15000);
-        await this.page.waitForURL(/.*\/payment_done\/\d+/, { timeout: 40000 });
+        await this.page.waitForURL(CheckoutPageSelectors.pages.success, {
+          timeout: 40000,
+        });
       } catch (error2) {
         // Final fallback: JavaScript click
         await this.page.evaluate(() => {
@@ -174,7 +187,9 @@ export class CheckoutPage {
           }
         });
 
-        await this.page.waitForURL(/.*\/payment_done\/\d+/, { timeout: 40000 });
+        await this.page.waitForURL(CheckoutPageSelectors.pages.success, {
+          timeout: 40000,
+        });
       }
     }
   }
@@ -183,7 +198,9 @@ export class CheckoutPage {
    * Confirms the order and proceeds to payment
    */
   async confirmOrder() {
-    const confirmBtn = this.page.locator("a.check_out").last();
+    const confirmBtn = this.page
+      .locator(CheckoutPageSelectors.confirmButton)
+      .last();
 
     await expect(confirmBtn).toBeVisible({ timeout: 20000 });
     await expect(confirmBtn).toBeEnabled({ timeout: 10000 });
@@ -196,7 +213,9 @@ export class CheckoutPage {
     }
 
     try {
-      await this.page.waitForURL(/.*payment/, { timeout: 30000 });
+      await this.page.waitForURL(CheckoutPageSelectors.pages.payment, {
+        timeout: 30000,
+      });
     } catch (error) {
       const newUrl = this.page.url();
 
@@ -212,32 +231,19 @@ export class CheckoutPage {
    * Verifies that the current page is the order success page
    */
   async expectOnSuccessPage() {
-    await expect(this.page).toHaveURL(/.*\/payment_done\/\d+/, {
+    await expect(this.page).toHaveURL(CheckoutPageSelectors.pages.success, {
       timeout: 40000,
     });
   }
 
   /**
    * Verifies that order success message is displayed
-   * Checks multiple possible success indicators
    */
   async expectSuccessMessage() {
     await this.expectOnSuccessPage();
 
-    const successIndicators = [
-      ".alert-success",
-      "h2:has-text('Order Placed!')",
-      "p:has-text('Congratulations')",
-      ".order-success",
-      "text=Your order has been placed successfully!",
-      "text=Order Placed!",
-      "[data-qa='order-placed']",
-      ".success-message",
-      "h1:has-text('Order Placed')",
-    ];
-
     let foundSuccess = false;
-    for (const selector of successIndicators) {
+    for (const selector of CheckoutPageSelectors.successIndicators) {
       try {
         await this.page.waitForSelector(selector, { timeout: 10000 });
         foundSuccess = true;

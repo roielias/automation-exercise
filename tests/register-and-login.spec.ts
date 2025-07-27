@@ -1,16 +1,11 @@
 import { test, expect } from "@playwright/test";
 import { LoginPage } from "../pages/LoginPage";
 import { ClickHandlerChain } from "../clickHandlerChain";
+import { LoginPageSelectors } from "../selectors/login.selectors";
 
 /**
  * Complete user registration and login flow test
- *
- * This test covers:
- * 1. New user registration with full profile details
- * 2. Account creation confirmation
- * 3. Logout process
- * 4. Login with newly created credentials
- * 5. Verification of successful authentication
+ * Updated to use centralized selectors for better maintainability
  */
 test("register and login a new user", async ({ page }) => {
   const loginPage = new LoginPage(page);
@@ -22,35 +17,51 @@ test("register and login a new user", async ({ page }) => {
   const uniqueEmail = `roi${Date.now()}@test.com`;
   await loginPage.registerNewUser("Roi", uniqueEmail);
 
-  // Step 2: Fill detailed registration form
-  await page.locator('[data-qa="password"]').fill("123456");
-  await page.locator('[data-qa="days"]').selectOption("10");
-  await page.locator('[data-qa="months"]').selectOption("5");
-  await page.locator('[data-qa="years"]').selectOption("1997");
+  // Step 2: Fill detailed registration form using centralized selectors
+  await page.locator(LoginPageSelectors.registration.password).fill("123456");
+  await page
+    .locator(LoginPageSelectors.registration.birthDay)
+    .selectOption("10");
+  await page
+    .locator(LoginPageSelectors.registration.birthMonth)
+    .selectOption("5");
+  await page
+    .locator(LoginPageSelectors.registration.birthYear)
+    .selectOption("1997");
 
   // Handle checkbox selections using click chain for reliability
-  const genderCheckbox = page.locator("#id_gender1");
+  const genderCheckbox = page.locator(
+    LoginPageSelectors.registration.genderMale
+  );
   await clickChain.clickWithTimeout(genderCheckbox, 5000);
 
-  const newsletterCheckbox = page.locator("#newsletter");
+  const newsletterCheckbox = page.locator(
+    LoginPageSelectors.registration.newsletter
+  );
   await clickChain.clickWithTimeout(newsletterCheckbox, 5000);
 
-  const optinCheckbox = page.locator("#optin");
+  const optinCheckbox = page.locator(LoginPageSelectors.registration.optin);
   await clickChain.clickWithTimeout(optinCheckbox, 5000);
 
-  // Fill address information
-  await page.locator('[data-qa="first_name"]').fill("Roi");
-  await page.locator('[data-qa="last_name"]').fill("Elias");
-  await page.locator('[data-qa="company"]').fill("Testing LTD");
-  await page.locator('[data-qa="address"]').fill("Herzl 20");
-  await page.locator('[data-qa="address2"]').fill("Floor 2");
-  await page.locator('[data-qa="state"]').fill("Holon");
-  await page.locator('[data-qa="city"]').fill("Holon");
-  await page.locator('[data-qa="zipcode"]').fill("12345");
-  await page.locator('[data-qa="mobile_number"]').fill("0500000000");
+  // Fill address information using centralized selectors
+  await page.locator(LoginPageSelectors.registration.firstName).fill("Roi");
+  await page.locator(LoginPageSelectors.registration.lastName).fill("Elias");
+  await page
+    .locator(LoginPageSelectors.registration.company)
+    .fill("Testing LTD");
+  await page.locator(LoginPageSelectors.registration.address).fill("Herzl 20");
+  await page.locator(LoginPageSelectors.registration.address2).fill("Floor 2");
+  await page.locator(LoginPageSelectors.registration.state).fill("Holon");
+  await page.locator(LoginPageSelectors.registration.city).fill("Holon");
+  await page.locator(LoginPageSelectors.registration.zipcode).fill("12345");
+  await page
+    .locator(LoginPageSelectors.registration.mobileNumber)
+    .fill("0500000000");
 
   // Step 3: Submit registration form
-  const createAccountButton = page.locator('[data-qa="create-account"]');
+  const createAccountButton = page.locator(
+    LoginPageSelectors.registration.createAccountButton
+  );
   const createSuccess = await clickChain.clickWithTimeout(
     createAccountButton,
     10000
@@ -61,11 +72,13 @@ test("register and login a new user", async ({ page }) => {
 
   // Step 4: Handle account creation confirmation
   await page
-    .locator('[data-qa="continue-button"]')
+    .locator(LoginPageSelectors.registration.continueButton)
     .waitFor({ state: "visible", timeout: 60000 });
   await page.waitForTimeout(1000);
 
-  const continueButton = page.locator('[data-qa="continue-button"]');
+  const continueButton = page.locator(
+    LoginPageSelectors.registration.continueButton
+  );
   const continueSuccess = await clickChain.clickWithTimeout(
     continueButton,
     10000
@@ -75,7 +88,7 @@ test("register and login a new user", async ({ page }) => {
   }
 
   // Step 5: Logout to test login functionality
-  const logoutButton = page.locator('a[href="/logout"]');
+  const logoutButton = page.locator(LoginPageSelectors.userState.logoutButton);
   if ((await logoutButton.count()) > 0) {
     await logoutButton.waitFor({ state: "visible", timeout: 10000 });
 
@@ -96,6 +109,8 @@ test("register and login a new user", async ({ page }) => {
   // Step 6: Test login with newly created account
   await loginPage.login(uniqueEmail, "123456");
 
-  // Step 7: Verify successful login
-  await expect(page.locator("text=Logged in as Roi")).toBeVisible();
+  // Step 7: Verify successful login using centralized selector
+  await expect(
+    page.locator(LoginPageSelectors.userState.loggedInText + " Roi")
+  ).toBeVisible();
 });

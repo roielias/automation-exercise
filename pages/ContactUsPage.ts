@@ -1,9 +1,11 @@
 import { Page } from "@playwright/test";
 import { ClickHandlerChain } from "../clickHandlerChain";
+import { ContactUsSelectors } from "../selectors/contactUs.selectors";
 
 /**
  * Page Object Model class for the Contact Us functionality.
  * Handles navigation to contact page, form filling, and form submission.
+ * Updated to use centralized selectors.
  */
 export class ContactUsPage {
   private clickChain: ClickHandlerChain;
@@ -24,11 +26,6 @@ export class ContactUsPage {
 
   /**
    * Fills out the contact form with provided information
-   *
-   * @param name - Contact name
-   * @param email - Contact email address
-   * @param subject - Message subject
-   * @param message - Message content
    */
   async fillForm(
     name: string,
@@ -36,10 +33,10 @@ export class ContactUsPage {
     subject: string,
     message: string
   ) {
-    await this.page.fill('[name="name"]', name);
-    await this.page.fill('[name="email"]', email);
-    await this.page.fill('[name="subject"]', subject);
-    await this.page.fill('[name="message"]', message);
+    await this.page.fill(ContactUsSelectors.form.name, name);
+    await this.page.fill(ContactUsSelectors.form.email, email);
+    await this.page.fill(ContactUsSelectors.form.subject, subject);
+    await this.page.fill(ContactUsSelectors.form.message, message);
   }
 
   /**
@@ -50,7 +47,9 @@ export class ContactUsPage {
     // Set up dialog handler before clicking submit to auto-accept confirmation
     this.page.once("dialog", (dialog) => dialog.accept());
 
-    const submitButton = this.page.locator('input[name="submit"]');
+    const submitButton = this.page.locator(
+      ContactUsSelectors.form.submitButton
+    );
     const success = await this.clickChain.clickWithTimeout(submitButton, 10000);
     if (!success) {
       throw new Error("Failed to click submit button");

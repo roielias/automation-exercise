@@ -1,9 +1,11 @@
 import { Page, expect } from "@playwright/test";
 import { ClickHandlerChain } from "../clickHandlerChain";
+import { ProductsSectionSelectors } from "../selectors/products.selectors";
 
 /**
  * Page Object Model class for products section functionality.
  * Handles product browsing and adding items to cart with robust interaction strategies.
+ * Updated to use centralized selectors.
  */
 export class ProductsSection {
   private clickChain: ClickHandlerChain;
@@ -33,14 +35,16 @@ export class ProductsSection {
 
   /**
    * Adds a product to cart by index with comprehensive error handling and retry logic
-   *
-   * @param index - Zero-based index of the product to add to cart
-   * @throws Error if product cannot be added after all retry attempts
    */
   async addProductToCart(index: number) {
-    await this.page.waitForSelector(".single-products", { timeout: 30000 });
+    await this.page.waitForSelector(
+      ProductsSectionSelectors.products.container,
+      { timeout: 30000 }
+    );
 
-    const productCount = await this.page.locator(".single-products").count();
+    const productCount = await this.page
+      .locator(ProductsSectionSelectors.products.container)
+      .count();
 
     if (index >= productCount) {
       throw new Error(
@@ -50,7 +54,9 @@ export class ProductsSection {
 
     await this.page.waitForTimeout(3000);
 
-    const product = this.page.locator(".single-products").nth(index);
+    const product = this.page
+      .locator(ProductsSectionSelectors.products.container)
+      .nth(index);
 
     // Ensure product is visible in viewport
     await product.scrollIntoViewIfNeeded();
@@ -62,7 +68,7 @@ export class ProductsSection {
       await this.page.waitForTimeout(1000);
 
       const closeButtons = this.page.locator(
-        '[class*="close"], [class*="dismiss"], .modal-close'
+        ProductsSectionSelectors.modal.closeAlternatives.join(", ")
       );
       const closeCount = await closeButtons.count();
 
@@ -96,15 +102,14 @@ export class ProductsSection {
         }
       }
     }
-    if (!hoverSuccess) {
-      throw new Error("Failed to hover over product after 3 attempts.");
-    }
 
     if (!hoverSuccess) {
       throw new Error(`Failed to hover over product ${index} after 3 attempts`);
     }
 
-    const addToCartButton = product.locator(".product-overlay .add-to-cart");
+    const addToCartButton = product.locator(
+      ProductsSectionSelectors.addToCart.overlayButton
+    );
     await expect(addToCartButton).toBeVisible({ timeout: 20000 });
 
     let success = false;
@@ -125,10 +130,14 @@ export class ProductsSection {
         }
 
         // Verify modal appears confirming item was added
-        const modal = this.page.locator("#cartModal.modal.show");
+        const modal = this.page.locator(
+          ProductsSectionSelectors.modal.activeModal
+        );
         await expect(modal).toBeVisible({ timeout: 20000 });
 
-        await expect(this.page.locator("#cartModal")).toHaveText(/Added!/, {
+        await expect(
+          this.page.locator(ProductsSectionSelectors.modal.container)
+        ).toHaveText(new RegExp(ProductsSectionSelectors.modal.successText), {
           timeout: 10000,
         });
 
@@ -165,7 +174,9 @@ export class ProductsSection {
 
     // Close the confirmation modal
     try {
-      const closeButton = this.page.locator(".close-modal");
+      const closeButton = this.page.locator(
+        ProductsSectionSelectors.modal.closeButton
+      );
       await expect(closeButton).toBeVisible({ timeout: 10000 });
 
       const closeSuccess = await this.clickChain.clickWithTimeout(
@@ -176,7 +187,9 @@ export class ProductsSection {
         throw new Error("Failed to close modal");
       }
 
-      await expect(this.page.locator("#cartModal")).toBeHidden({
+      await expect(
+        this.page.locator(ProductsSectionSelectors.modal.container)
+      ).toBeHidden({
         timeout: 10000,
       });
     } catch {
@@ -190,7 +203,7 @@ export class ProductsSection {
 
       // Force hide modal if still visible
       const isModalVisible = await this.page
-        .locator("#cartModal.modal.show")
+        .locator(ProductsSectionSelectors.modal.activeModal)
         .isVisible();
       if (isModalVisible) {
         await this.page.evaluate(() => {

@@ -1,0 +1,3 @@
+Normal click time: 952ms
+Chain click time: 441ms
+Chain success: true
