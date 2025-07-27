@@ -6,6 +6,18 @@ import { LoginPage } from "../pages/LoginPage";
 
 test.setTimeout(120000);
 
+/**
+ * Complete end-to-end order placement test
+ *
+ * This comprehensive test covers the entire e-commerce flow:
+ * 1. User authentication
+ * 2. Cart management (clear + add products)
+ * 3. Price verification throughout the process
+ * 4. Checkout and payment processing
+ * 5. Order confirmation
+ *
+ * Includes extensive error handling and retry mechanisms for reliability
+ */
 test("place order with correct total and confirmation", async ({ page }) => {
   const products = new ProductsSection(page);
   const cart = new CartPage(page);
@@ -15,9 +27,11 @@ test("place order with correct total and confirmation", async ({ page }) => {
   page.setDefaultTimeout(30000);
 
   try {
+    // Step 1: User Authentication
     await loginPage.navigate();
     await loginPage.login("roielias910@gmail.com", "12345678");
 
+    // Step 2: Start with clean cart
     await cart.clearCart();
 
     let emptyCart;
@@ -28,6 +42,7 @@ test("place order with correct total and confirmation", async ({ page }) => {
     }
     expect(emptyCart.length).toBe(0);
 
+    // Step 3: Add products to cart
     await products.navigate();
     await page.waitForTimeout(5000);
 
@@ -35,6 +50,7 @@ test("place order with correct total and confirmation", async ({ page }) => {
 
     await page.waitForTimeout(5000);
 
+    // Verify first item was added, if single item add another for better testing
     await cart.navigate();
     let cartItems = await cart.getCartItems();
 
@@ -45,6 +61,7 @@ test("place order with correct total and confirmation", async ({ page }) => {
       await page.waitForTimeout(5000);
     }
 
+    // Step 4: Verify cart contents and calculate expected total
     await cart.navigate();
     cartItems = await cart.getCartItems();
 
@@ -56,6 +73,7 @@ test("place order with correct total and confirmation", async ({ page }) => {
     );
     expect(expectedSum).toBeGreaterThan(0);
 
+    // Step 5: Proceed to checkout
     await cart.placeOrder();
 
     await page.waitForTimeout(5000);
@@ -66,6 +84,7 @@ test("place order with correct total and confirmation", async ({ page }) => {
       );
     }
 
+    // Step 6: Verify checkout total matches cart total (with retry mechanism)
     let checkoutSum;
     let attempts = 0;
     const maxAttempts = 3;
@@ -86,12 +105,15 @@ test("place order with correct total and confirmation", async ({ page }) => {
       }
     }
 
+    // Validate total is reasonable (allows for taxes/fees)
     expect(checkoutSum).toBeGreaterThanOrEqual(expectedSum);
     expect(checkoutSum).toBeLessThanOrEqual(expectedSum * 2);
 
+    // Step 7: Confirm order and proceed to payment
     await checkout.confirmOrder();
     await page.waitForTimeout(5000);
 
+    // Step 8: Fill payment form with test data
     await checkout.fillOrderForm({
       name: "John Doe",
       card: "4111111111111111",
@@ -100,16 +122,20 @@ test("place order with correct total and confirmation", async ({ page }) => {
       expYear: "2025",
     });
 
+    // Step 9: Submit order and verify success
     await checkout.submitOrder();
 
     await checkout.expectSuccessMessage();
   } catch (error) {
     try {
+      // Capture screenshot for debugging on failure
       await page.screenshot({
         path: `error-screenshot-${Date.now()}.png`,
         fullPage: true,
       });
-    } catch {}
+    } catch {
+      // Continue if screenshot fails
+    }
 
     throw error;
   }

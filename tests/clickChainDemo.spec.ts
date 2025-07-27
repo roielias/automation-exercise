@@ -3,6 +3,10 @@ import { ClickHandlerChain } from "../clickHandlerChain";
 import { ProductsSection } from "../pages/ProductsSection";
 import { CartPage } from "../pages/CartPage";
 
+/**
+ * Demonstration test for the Click Handler Chain functionality
+ * Shows various scenarios where the chain provides reliable clicking
+ */
 test("demonstrate click handler chain usage", async ({ page }) => {
   const clickChain = new ClickHandlerChain();
   const products = new ProductsSection(page);
@@ -12,6 +16,7 @@ test("demonstrate click handler chain usage", async ({ page }) => {
 
   await products.navigate();
 
+  // Test 1: Simple navigation link click
   const homeLink = page.locator('a[href="/"]').first();
   const homeSuccess = await clickChain.clickWithTimeout(homeLink, 5000);
   expect(homeSuccess).toBe(true);
@@ -20,6 +25,7 @@ test("demonstrate click handler chain usage", async ({ page }) => {
 
   await page.waitForSelector(".single-products", { state: "visible" });
 
+  // Test 2: Complex product interaction requiring hover + click
   const product = page.locator(".single-products").nth(5);
 
   await product.hover();
@@ -33,10 +39,12 @@ test("demonstrate click handler chain usage", async ({ page }) => {
   if (addSuccess) {
     console.log("Successfully clicked add to cart button!");
 
+    // Verify modal appears after successful click
     await expect(page.locator("#cartModal.modal.show")).toBeVisible({
       timeout: 10000,
     });
 
+    // Close modal using click chain
     const closeButton = page.locator(".close-modal");
     const closeSuccess = await clickChain.clickWithTimeout(closeButton, 5000);
     expect(closeSuccess).toBe(true);
@@ -44,6 +52,7 @@ test("demonstrate click handler chain usage", async ({ page }) => {
     console.log("Failed to click add to cart button even with chain");
   }
 
+  // Test 3: Cart item deletion
   await cart.navigate();
 
   const deleteButtons = page.locator(".cart_quantity_delete");
@@ -64,6 +73,7 @@ test("demonstrate click handler chain usage", async ({ page }) => {
     }
   }
 
+  // Test 4: Handling non-existent elements (error scenario)
   try {
     const nonExistentElement = page.locator("#this-element-does-not-exist");
     const failureResult = await clickChain.clickWithTimeout(
@@ -77,6 +87,10 @@ test("demonstrate click handler chain usage", async ({ page }) => {
   }
 });
 
+/**
+ * Performance comparison test between normal clicking and chain clicking
+ * Demonstrates the reliability benefits of the chain approach
+ */
 test("compare normal click vs chain click performance", async ({ page }) => {
   const clickChain = new ClickHandlerChain();
   const products = new ProductsSection(page);
@@ -84,6 +98,7 @@ test("compare normal click vs chain click performance", async ({ page }) => {
   await products.navigate();
   await page.waitForSelector(".single-products", { state: "visible" });
 
+  // Test normal click performance and reliability
   const startNormal = Date.now();
   try {
     await page.locator('a[href="/"]').first().click({ timeout: 5000 });
@@ -95,6 +110,7 @@ test("compare normal click vs chain click performance", async ({ page }) => {
   await page.waitForTimeout(1000);
   await products.navigate();
 
+  // Test chain click performance and reliability
   const startChain = Date.now();
   const chainSuccess = await clickChain.clickWithTimeout(
     page.locator('a[href="/"]').first(),
@@ -106,5 +122,6 @@ test("compare normal click vs chain click performance", async ({ page }) => {
   console.log(`Chain click time: ${chainTime}ms`);
   console.log(`Chain success: ${chainSuccess}`);
 
+  // Chain should succeed even if normal click might fail
   expect(chainSuccess).toBe(true);
 });

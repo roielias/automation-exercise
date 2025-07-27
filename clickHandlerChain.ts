@@ -1,40 +1,53 @@
 import { Locator } from "@playwright/test";
 import { NormalClickHandler } from "./click-handlers/normalClickHandler";
-import { JsClickHandler } from "./click-handlers/jsClickHandler";
 import { ScrollAndClickHandler } from "./click-handlers/scrollAndClickHandler";
+import { JsClickHandler } from "./click-handlers/jsClickHandler";
 
+/**
+ * Main orchestrator class that sets up and manages the click handler chain.
+ *
+ * This class configures the chain of responsibility pattern with different
+ * click strategies arranged in order of preference:
+ * 1. Normal click (most reliable)
+ * 2. Scroll and click (for viewport issues)
+ * 3. JavaScript click (fallback for complex DOM issues)
+ */
 export class ClickHandlerChain {
   private chain: NormalClickHandler;
 
   constructor() {
+    // Initialize the chain with preferred order of handlers
     this.chain = new NormalClickHandler();
-    const scrollHandler = new ScrollAndClickHandler();
-    const jsHandler = new JsClickHandler();
-
-    this.chain.setNext(scrollHandler).setNext(jsHandler);
+    this.chain
+      .setNext(new ScrollAndClickHandler())
+      .setNext(new JsClickHandler());
   }
 
-  async click(element: Locator): Promise<boolean> {
-    return await this.chain.handle(element);
-  }
+  /**
+   * Attempts to click an element with timeout using the configured handler chain
+   *
+   * @param element - The Playwright Locator to click
+   * @param timeout - Maximum time to wait for successful click (in milliseconds)
+   * @returns Promise<boolean> - true if any handler in chain succeeded, false if all failed
+   * @throws Error if timeout is exceeded before successful click
+   */
+  async clickWithTimeout(element: Locator, timeout: number): Promise<boolean> {
+    const startTime = Date.now();
 
-  async clickWithTimeout(
-    element: Locator,
-    timeout: number = 10000
-  ): Promise<boolean> {
-    const timeoutPromise = new Promise<boolean>((_, reject) => {
-      setTimeout(
-        () => reject(new Error(`Click timeout after ${timeout}ms`)),
-        timeout
-      );
-    });
+    while (Date.now() - startTime < timeout) {
+      try {
+        const success = await this.chain.handle(element);
+        if (success) {
+          return true;
+        }
+      } catch (error) {
+        // Continue trying until timeout
+      }
 
-    const clickPromise = this.click(element);
-
-    try {
-      return await Promise.race([clickPromise, timeoutPromise]);
-    } catch (error) {
-      throw new Error(`Failed to click element: ${error}`);
+      // Small delay between attempts to avoid overwhelming the system
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
+
+    throw new Error(`Click operation timed out after ${timeout}ms`);
   }
 }

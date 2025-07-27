@@ -1,6 +1,10 @@
 import { Page, expect } from "@playwright/test";
 import { ClickHandlerChain } from "../clickHandlerChain";
 
+/**
+ * Page Object Model class for products section functionality.
+ * Handles product browsing and adding items to cart with robust interaction strategies.
+ */
 export class ProductsSection {
   private clickChain: ClickHandlerChain;
 
@@ -8,6 +12,9 @@ export class ProductsSection {
     this.clickChain = new ClickHandlerChain();
   }
 
+  /**
+   * Navigates to the products section with comprehensive loading strategy
+   */
   async navigate() {
     await this.page.goto("https://automationexercise.com/", {
       timeout: 90000,
@@ -17,10 +24,19 @@ export class ProductsSection {
     await this.page.waitForTimeout(5000);
 
     try {
+      // Wait for network to be idle for better stability
       await this.page.waitForLoadState("networkidle", { timeout: 30000 });
-    } catch {}
+    } catch {
+      // Continue if networkidle timeout occurs
+    }
   }
 
+  /**
+   * Adds a product to cart by index with comprehensive error handling and retry logic
+   *
+   * @param index - Zero-based index of the product to add to cart
+   * @throws Error if product cannot be added after all retry attempts
+   */
   async addProductToCart(index: number) {
     await this.page.waitForSelector(".single-products", { timeout: 30000 });
 
@@ -36,10 +52,12 @@ export class ProductsSection {
 
     const product = this.page.locator(".single-products").nth(index);
 
+    // Ensure product is visible in viewport
     await product.scrollIntoViewIfNeeded();
     await this.page.waitForTimeout(2000);
 
     try {
+      // Close any existing modals that might interfere
       await this.page.keyboard.press("Escape");
       await this.page.waitForTimeout(1000);
 
@@ -52,12 +70,17 @@ export class ProductsSection {
         try {
           await this.clickChain.clickWithTimeout(closeButtons.nth(i), 2000);
           await this.page.waitForTimeout(500);
-        } catch {}
+        } catch {
+          // Continue trying other close buttons
+        }
       }
-    } catch {}
+    } catch {
+      // Continue if modal cleanup fails
+    }
 
     await product.waitFor({ timeout: 15000 });
 
+    // Hover over product to reveal add-to-cart button (retry mechanism)
     let hoverSuccess = false;
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
@@ -82,6 +105,7 @@ export class ProductsSection {
     let success = false;
     const maxAttempts = 5;
 
+    // Multiple attempts to click add-to-cart button
     for (let attempts = 0; attempts < maxAttempts; attempts++) {
       try {
         await expect(addToCartButton).toBeVisible({ timeout: 10000 });
@@ -95,6 +119,7 @@ export class ProductsSection {
           throw new Error("Click failed through chain");
         }
 
+        // Verify modal appears confirming item was added
         const modal = this.page.locator("#cartModal.modal.show");
         await expect(modal).toBeVisible({ timeout: 20000 });
 
@@ -107,9 +132,12 @@ export class ProductsSection {
       } catch {
         if (attempts < maxAttempts - 1) {
           try {
+            // Reset state for retry
             await this.page.keyboard.press("Escape");
             await this.page.waitForTimeout(1000);
-          } catch {}
+          } catch {
+            // Continue with retry
+          }
 
           await this.page.waitForTimeout(3000);
           await product.scrollIntoViewIfNeeded();
@@ -117,7 +145,9 @@ export class ProductsSection {
           try {
             await product.hover({ timeout: 10000 });
             await this.page.waitForTimeout(2000);
-          } catch {}
+          } catch {
+            // Continue with retry
+          }
         }
       }
     }
@@ -128,6 +158,7 @@ export class ProductsSection {
       );
     }
 
+    // Close the confirmation modal
     try {
       const closeButton = this.page.locator(".close-modal");
       await expect(closeButton).toBeVisible({ timeout: 10000 });
@@ -145,10 +176,14 @@ export class ProductsSection {
       });
     } catch {
       try {
+        // Fallback: Use keyboard to close modal
         await this.page.keyboard.press("Escape");
         await this.page.waitForTimeout(2000);
-      } catch {}
+      } catch {
+        // Continue if escape fails
+      }
 
+      // Force hide modal if still visible
       const isModalVisible = await this.page
         .locator("#cartModal.modal.show")
         .isVisible();
@@ -162,6 +197,7 @@ export class ProductsSection {
       }
     }
 
+    // Brief pause before next operation
     await this.page.waitForTimeout(2000);
   }
 }

@@ -1,5 +1,21 @@
 import { Page, expect } from "@playwright/test";
 import { ClickHandlerChain } from "../clickHandlerChain";
+
+/**
+ * Interface for order form data
+ */
+interface OrderFormData {
+  name: string;
+  card: string;
+  cvc?: string;
+  expMonth?: string;
+  expYear?: string;
+}
+
+/**
+ * Page Object Model class for the checkout and payment process.
+ * Handles order confirmation, payment form filling, and order submission.
+ */
 export class CheckoutPage {
   private clickChain: ClickHandlerChain;
 
@@ -7,21 +23,34 @@ export class CheckoutPage {
     this.clickChain = new ClickHandlerChain();
   }
 
+  /**
+   * Verifies that the current page is the checkout page
+   */
   async expectOnCheckoutPage() {
     await expect(this.page).toHaveURL(/.*\/checkout/, { timeout: 30000 });
   }
 
+  /**
+   * Verifies that the current page is the payment page
+   */
   async expectOnPaymentPage() {
     await expect(this.page).toHaveURL(/.*\/payment/, { timeout: 30000 });
   }
 
-  async getTotalOrderAmount() {
+  /**
+   * Extracts the total order amount from the checkout page
+   *
+   * @returns Promise<number> - The total order amount as a number
+   * @throws Error if total amount cannot be found or parsed
+   */
+  async getTotalOrderAmount(): Promise<number> {
     const totalSelector =
       "tr:has(h4:has-text('Total Amount')) .cart_total_price";
 
     try {
       await this.page.waitForSelector(totalSelector, { timeout: 30000 });
     } catch (error) {
+      // Try alternative selectors if primary fails
       const alternativeSelectors = [
         ".cart_total_price:last-child",
         "tr:contains('Total Amount') .cart_total_price",
@@ -51,49 +80,53 @@ export class CheckoutPage {
     return numeric;
   }
 
+  /**
+   * Fills out the payment form with provided details
+   *
+   * @param formData - Object containing payment form data
+   */
   async fillOrderForm({
     name,
     card,
     cvc = "311",
     expMonth = "12",
     expYear = "2025",
-  }: {
-    name: string;
-    card: string;
-    cvc?: string;
-    expMonth?: string;
-    expYear?: string;
-  }) {
+  }: OrderFormData) {
     await this.expectOnPaymentPage();
 
     await this.page.waitForSelector('[data-qa="name-on-card"]', {
       timeout: 20000,
     });
 
+    // Fill name on card
     const nameField = this.page.locator('[data-qa="name-on-card"]');
     await nameField.waitFor({ timeout: 10000 });
     await nameField.clear();
     await nameField.fill(name);
     await this.page.waitForTimeout(500);
 
+    // Fill card number
     const cardField = this.page.locator('[data-qa="card-number"]');
     await cardField.waitFor({ timeout: 10000 });
     await cardField.clear();
     await cardField.fill(card);
     await this.page.waitForTimeout(500);
 
+    // Fill CVC
     const cvcField = this.page.locator('[placeholder="ex. 311"]');
     await cvcField.waitFor({ timeout: 10000 });
     await cvcField.clear();
     await cvcField.fill(cvc);
     await this.page.waitForTimeout(500);
 
+    // Fill expiration month
     const monthField = this.page.locator('[placeholder="MM"]');
     await monthField.waitFor({ timeout: 10000 });
     await monthField.clear();
     await monthField.fill(expMonth);
     await this.page.waitForTimeout(500);
 
+    // Fill expiration year
     const yearField = this.page.locator('[placeholder="YYYY"]');
     await yearField.waitFor({ timeout: 10000 });
     await yearField.clear();
@@ -102,6 +135,10 @@ export class CheckoutPage {
     await this.page.waitForTimeout(2000);
   }
 
+  /**
+   * Submits the payment form and waits for successful processing
+   * Uses multiple fallback strategies for reliable form submission
+   */
   async submitOrder() {
     const payButton = this.page.locator('[data-qa="pay-button"]');
     await expect(payButton).toBeVisible({ timeout: 30000 });
@@ -123,9 +160,11 @@ export class CheckoutPage {
       }
 
       try {
+        // Second attempt with click chain
         await this.clickChain.clickWithTimeout(payButton, 15000);
         await this.page.waitForURL(/.*\/payment_done\/\d+/, { timeout: 40000 });
       } catch (error2) {
+        // Final fallback: JavaScript click
         await this.page.evaluate(() => {
           const button = document.querySelector(
             '[data-qa="pay-button"]'
@@ -140,6 +179,9 @@ export class CheckoutPage {
     }
   }
 
+  /**
+   * Confirms the order and proceeds to payment
+   */
   async confirmOrder() {
     const confirmBtn = this.page.locator("a.check_out").last();
 
@@ -166,12 +208,19 @@ export class CheckoutPage {
     }
   }
 
+  /**
+   * Verifies that the current page is the order success page
+   */
   async expectOnSuccessPage() {
     await expect(this.page).toHaveURL(/.*\/payment_done\/\d+/, {
       timeout: 40000,
     });
   }
 
+  /**
+   * Verifies that order success message is displayed
+   * Checks multiple possible success indicators
+   */
   async expectSuccessMessage() {
     await this.expectOnSuccessPage();
 
@@ -193,14 +242,18 @@ export class CheckoutPage {
         await this.page.waitForSelector(selector, { timeout: 10000 });
         foundSuccess = true;
         break;
-      } catch (e) {}
+      } catch (e) {
+        // Continue checking other indicators
+      }
     }
 
     if (!foundSuccess) {
       await this.expectOnSuccessPage();
 
+      // Fallback check for order-related text in page body
       const bodyText = await this.page.textContent("body");
       if (!bodyText || !bodyText.toLowerCase().includes("order")) {
+        // Additional validation could be added here
       }
     }
   }
