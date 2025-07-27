@@ -1,10 +1,15 @@
 import { test, expect } from "@playwright/test";
 import { HomePage } from "../pages/HomePage";
+import { ClickHandlerChain } from "../clickHandlerChain";
+
 test.describe.configure({ timeout: 60000 });
+
 test("dynamically filters all categories and validates product visibility", async ({
   page,
 }) => {
   const homePage = new HomePage(page);
+  const clickChain = new ClickHandlerChain();
+
   await homePage.navigate();
 
   const parentCategories = page.locator("#accordian > .panel");
@@ -24,21 +29,41 @@ test("dynamically filters all categories and validates product visibility", asyn
       const currentParent = page.locator("#accordian > .panel").nth(i);
       const categoryLink = currentParent.locator("a").first();
 
+      let success = false;
       if (await categoryLink.isVisible()) {
-        await categoryLink.click();
+        success = await clickChain.clickWithTimeout(categoryLink, 10000);
       } else {
-        await categoryLink.click({ force: true });
+        try {
+          await categoryLink.click({ force: true });
+          success = true;
+        } catch {
+          success = await clickChain.clickWithTimeout(categoryLink, 10000);
+        }
+      }
+
+      if (!success) {
+        throw new Error(`Failed to click parent category: ${parentName}`);
       }
 
       await expect(currentParent.locator(".panel-collapse")).toHaveClass(/in/);
 
       const currentSub = currentParent.locator(".panel-collapse a").nth(j);
-      (await currentSub.textContent())?.trim() || "Unknown";
+      const subName = (await currentSub.textContent())?.trim() || "Unknown";
 
+      let subSuccess = false;
       if (await currentSub.isVisible()) {
-        await currentSub.click();
+        subSuccess = await clickChain.clickWithTimeout(currentSub, 10000);
       } else {
-        await currentSub.click({ force: true });
+        try {
+          await currentSub.click({ force: true });
+          subSuccess = true;
+        } catch {
+          subSuccess = await clickChain.clickWithTimeout(currentSub, 10000);
+        }
+      }
+
+      if (!subSuccess) {
+        throw new Error(`Failed to click sub category: ${subName}`);
       }
 
       await page.waitForSelector(".productinfo > p", { state: "visible" });

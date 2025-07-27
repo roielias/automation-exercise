@@ -1,7 +1,12 @@
 import { Page } from "@playwright/test";
+import { ClickHandlerChain } from "../clickHandlerChain";
 
 export class ContactUsPage {
-  constructor(private page: Page) {}
+  private clickChain: ClickHandlerChain;
+
+  constructor(private page: Page) {
+    this.clickChain = new ClickHandlerChain();
+  }
 
   async navigate() {
     await this.page.goto("https://automationexercise.com/contact_us", {
@@ -24,6 +29,11 @@ export class ContactUsPage {
 
   async submitForm() {
     this.page.once("dialog", (dialog) => dialog.accept());
-    await this.page.click('input[name="submit"]');
+
+    const submitButton = this.page.locator('input[name="submit"]');
+    const success = await this.clickChain.clickWithTimeout(submitButton, 10000);
+    if (!success) {
+      throw new Error("Failed to click submit button");
+    }
   }
 }

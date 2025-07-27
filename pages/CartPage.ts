@@ -1,7 +1,11 @@
 import { Page, expect } from "@playwright/test";
-
+import { ClickHandlerChain } from "../clickHandlerChain";
 export class CartPage {
-  constructor(private page: Page) {}
+  private clickChain: ClickHandlerChain;
+
+  constructor(private page: Page) {
+    this.clickChain = new ClickHandlerChain();
+  }
 
   async navigate() {
     await this.page.goto("https://automationexercise.com/view_cart", {
@@ -111,7 +115,14 @@ export class CartPage {
       }
 
       try {
-        await deleteButtons.first().click({ timeout: 10000 });
+        const success = await this.clickChain.clickWithTimeout(
+          deleteButtons.first(),
+          10000
+        );
+        if (!success) {
+          throw new Error("Failed to click delete button");
+        }
+
         await this.page.waitForTimeout(3000);
         await this.page.waitForLoadState("load", { timeout: 10000 });
         attempts++;
@@ -142,7 +153,13 @@ export class CartPage {
 
     const currentUrl = this.page.url();
 
-    await availableButton.click({ timeout: 10000 });
+    const success = await this.clickChain.clickWithTimeout(
+      availableButton,
+      10000
+    );
+    if (!success) {
+      throw new Error("Failed to click checkout button");
+    }
 
     try {
       await this.page.waitForURL(/.*checkout/, { timeout: 20000 });
@@ -150,7 +167,7 @@ export class CartPage {
       const newUrl = this.page.url();
 
       if (!newUrl.includes("checkout")) {
-        await availableButton.click({ force: true });
+        await this.clickChain.clickWithTimeout(availableButton, 10000);
         await this.page.waitForURL(/.*checkout/, { timeout: 20000 });
       }
     }

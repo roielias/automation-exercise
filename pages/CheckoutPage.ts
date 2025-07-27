@@ -1,7 +1,11 @@
 import { Page, expect } from "@playwright/test";
-
+import { ClickHandlerChain } from "../clickHandlerChain";
 export class CheckoutPage {
-  constructor(private page: Page) {}
+  private clickChain: ClickHandlerChain;
+
+  constructor(private page: Page) {
+    this.clickChain = new ClickHandlerChain();
+  }
 
   async expectOnCheckoutPage() {
     await expect(this.page).toHaveURL(/.*\/checkout/, { timeout: 30000 });
@@ -106,7 +110,10 @@ export class CheckoutPage {
     const currentUrl = this.page.url();
 
     try {
-      await payButton.click({ timeout: 15000 });
+      const success = await this.clickChain.clickWithTimeout(payButton, 15000);
+      if (!success) {
+        throw new Error("Failed to click pay button");
+      }
       await this.page.waitForURL(/.*\/payment_done\/\d+/, { timeout: 40000 });
     } catch (error) {
       const newUrl = this.page.url();
@@ -116,7 +123,7 @@ export class CheckoutPage {
       }
 
       try {
-        await payButton.click({ force: true, timeout: 15000 });
+        await this.clickChain.clickWithTimeout(payButton, 15000);
         await this.page.waitForURL(/.*\/payment_done\/\d+/, { timeout: 40000 });
       } catch (error2) {
         await this.page.evaluate(() => {
@@ -141,7 +148,10 @@ export class CheckoutPage {
 
     const currentUrl = this.page.url();
 
-    await confirmBtn.click({ timeout: 15000 });
+    const success = await this.clickChain.clickWithTimeout(confirmBtn, 15000);
+    if (!success) {
+      throw new Error("Failed to click confirm button");
+    }
 
     try {
       await this.page.waitForURL(/.*payment/, { timeout: 30000 });

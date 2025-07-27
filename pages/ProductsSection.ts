@@ -1,7 +1,12 @@
 import { Page, expect } from "@playwright/test";
+import { ClickHandlerChain } from "../clickHandlerChain";
 
 export class ProductsSection {
-  constructor(private page: Page) {}
+  private clickChain: ClickHandlerChain;
+
+  constructor(private page: Page) {
+    this.clickChain = new ClickHandlerChain();
+  }
 
   async navigate() {
     await this.page.goto("https://automationexercise.com/", {
@@ -45,7 +50,7 @@ export class ProductsSection {
 
       for (let i = 0; i < Math.min(closeCount, 3); i++) {
         try {
-          await closeButtons.nth(i).click({ timeout: 2000 });
+          await this.clickChain.clickWithTimeout(closeButtons.nth(i), 2000);
           await this.page.waitForTimeout(500);
         } catch {}
       }
@@ -82,7 +87,13 @@ export class ProductsSection {
         await expect(addToCartButton).toBeVisible({ timeout: 10000 });
         await expect(addToCartButton).toBeEnabled({ timeout: 5000 });
 
-        await addToCartButton.click({ timeout: 15000 });
+        const clickSuccess = await this.clickChain.clickWithTimeout(
+          addToCartButton,
+          15000
+        );
+        if (!clickSuccess) {
+          throw new Error("Click failed through chain");
+        }
 
         const modal = this.page.locator("#cartModal.modal.show");
         await expect(modal).toBeVisible({ timeout: 20000 });
@@ -120,7 +131,14 @@ export class ProductsSection {
     try {
       const closeButton = this.page.locator(".close-modal");
       await expect(closeButton).toBeVisible({ timeout: 10000 });
-      await closeButton.click({ timeout: 10000 });
+
+      const closeSuccess = await this.clickChain.clickWithTimeout(
+        closeButton,
+        10000
+      );
+      if (!closeSuccess) {
+        throw new Error("Failed to close modal");
+      }
 
       await expect(this.page.locator("#cartModal")).toBeHidden({
         timeout: 10000,
@@ -135,6 +153,12 @@ export class ProductsSection {
         .locator("#cartModal.modal.show")
         .isVisible();
       if (isModalVisible) {
+        await this.page.evaluate(() => {
+          const modal = document.querySelector("#cartModal");
+          if (modal) {
+            (modal as any).style.display = "none";
+          }
+        });
       }
     }
 
