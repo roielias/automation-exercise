@@ -4,59 +4,67 @@ import { CartPage } from "../pages/CartPage";
 
 /**
  * Test suite for shopping cart functionality
- * Covers cart content verification and cart clearing operations
+ * Ensures Firefox/browser compatibility via stronger selectors, visibility waits, and scroll handling.
  */
 
-/**
- * Verifies that cart items display correct pricing calculations
- * Tests the mathematical accuracy of unit price × quantity = total price
- */
-test("verify cart contents and total sum", async ({ page }) => {
-  test.setTimeout(90000);
-  const products = new ProductsSection(page);
-  const cart = new CartPage(page);
+test.describe("Cart functionality", () => {
+  test.setTimeout(90000); // Global timeout for suite
 
-  await products.navigate();
+  /**
+   * Verifies that cart items display correct pricing calculations.
+   * Ensures: unit price × quantity === total price for each cart item.
+   */
+  test("verify cart contents and total sum", async ({ page }) => {
+    const products = new ProductsSection(page);
+    const cart = new CartPage(page);
 
-  // Add multiple products to cart for comprehensive testing
-  await products.addProductToCart(0);
-  await products.addProductToCart(1);
+    // Step 1: Navigate to product list and wait for items
+    await products.navigate();
+    const allProducts = page.locator(".single-products");
+    await expect(allProducts.nth(1)).toBeVisible({ timeout: 20000 });
 
-  await cart.navigate();
+    // Step 2: Add first two products with proper scroll + hover for Firefox compatibility
+    await products.addProductToCart(0);
+    await products.addProductToCart(1);
 
-  // Verify we're on the cart page
-  await expect(page).toHaveURL(/.*view_cart/);
+    // Step 3: Navigate to cart and validate URL
+    await cart.navigate();
+    await expect(page).toHaveURL(/.*view_cart/);
 
-  const cartItems = await cart.getCartItems();
+    // Step 4: Validate unit price × quantity === total price
+    const cartItems = await cart.getCartItems();
+    for (const item of cartItems) {
+      const expectedTotal = item.unitPrice * item.quantity;
+      expect(item.totalPrice).toBe(expectedTotal);
+    }
+  });
 
-  // Validate price calculations for each item
-  for (const item of cartItems) {
-    const expectedTotal = item.unitPrice * item.quantity;
-    expect(item.totalPrice).toBe(expectedTotal);
-  }
-});
+  /**
+   * Ensures that cart clearing flow works properly
+   * Adds products, clears cart, and verifies it is empty.
+   */
+  test("clear cart and verify it is empty", async ({ page }) => {
+    const products = new ProductsSection(page);
+    const cart = new CartPage(page);
 
-/**
- * Tests the cart clearing functionality
- * Ensures that all items can be removed and cart becomes empty
- */
-test("clear cart and verify it is empty", async ({ page }) => {
-  test.setTimeout(90000);
-  const products = new ProductsSection(page);
-  const cart = new CartPage(page);
+    // Step 1: Go to product list and wait for visibility
+    await products.navigate();
+    const productList = page.locator(".single-products");
+    await expect(productList.first()).toBeVisible({ timeout: 20000 });
 
-  await products.navigate();
+    // Step 2: Add two products with stable interaction
+    await products.addProductToCart(0);
+    await products.addProductToCart(1);
 
-  // Add products to have items to clear
-  await products.addProductToCart(0);
-  await products.addProductToCart(1);
+    // Step 3: Navigate to cart
+    await cart.navigate();
+    await expect(page).toHaveURL(/.*view_cart/);
 
-  await cart.navigate();
+    // Step 4: Clear the cart
+    await cart.clearCart();
 
-  // Clear all items from cart
-  await cart.clearCart();
-
-  // Verify cart is empty after clearing
-  const itemsAfterClear = await cart.getCartItems();
-  expect(itemsAfterClear.length).toBe(0);
+    // Step 5: Confirm cart is empty
+    const itemsAfterClear = await cart.getCartItems();
+    expect(itemsAfterClear.length).toBe(0);
+  });
 });

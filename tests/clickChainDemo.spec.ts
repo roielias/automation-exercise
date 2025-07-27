@@ -12,8 +12,7 @@ test("demonstrate click handler chain usage", async ({ page }) => {
   const products = new ProductsSection(page);
   const cart = new CartPage(page);
 
-  test.setTimeout(60000);
-
+  test.setTimeout(120000);
   await products.navigate();
 
   // Test 1: Simple navigation link click
@@ -21,17 +20,16 @@ test("demonstrate click handler chain usage", async ({ page }) => {
   const homeSuccess = await clickChain.clickWithTimeout(homeLink, 5000);
   expect(homeSuccess).toBe(true);
 
-  await page.waitForTimeout(2000);
-
-  await page.waitForSelector(".single-products", { state: "visible" });
+  await expect(page.locator(".single-products").first()).toBeVisible();
 
   // Test 2: Complex product interaction requiring hover + click
   const product = page.locator(".single-products").nth(5);
-
+  await product.scrollIntoViewIfNeeded();
   await product.hover();
-  await page.waitForTimeout(2000);
 
-  const addButton = product.locator(".add-to-cart");
+  // FIX: precise selector inside overlay
+  const addButton = product.locator(".product-overlay .add-to-cart").first();
+  await expect(addButton).toBeVisible();
 
   console.log("Attempting to click add to cart button with chain...");
   const addSuccess = await clickChain.clickWithTimeout(addButton, 10000);
@@ -67,7 +65,6 @@ test("demonstrate click handler chain usage", async ({ page }) => {
 
     if (deleteSuccess) {
       console.log("Successfully deleted cart item!");
-      await page.waitForTimeout(3000);
     } else {
       console.log("Failed to delete cart item");
     }
@@ -83,7 +80,7 @@ test("demonstrate click handler chain usage", async ({ page }) => {
     expect(failureResult).toBe(false);
   } catch (error) {
     console.log("Expected failure caught:", error.message);
-    expect(error.message).toContain("timeout");
+    expect(error.message).toMatch(/timed out/i);
   }
 });
 
@@ -92,11 +89,12 @@ test("demonstrate click handler chain usage", async ({ page }) => {
  * Demonstrates the reliability benefits of the chain approach
  */
 test("compare normal click vs chain click performance", async ({ page }) => {
+  test.setTimeout(90000);
   const clickChain = new ClickHandlerChain();
   const products = new ProductsSection(page);
 
   await products.navigate();
-  await page.waitForSelector(".single-products", { state: "visible" });
+  await expect(page.locator(".single-products").first()).toBeVisible();
 
   // Test normal click performance and reliability
   const startNormal = Date.now();
@@ -107,8 +105,8 @@ test("compare normal click vs chain click performance", async ({ page }) => {
   }
   const normalTime = Date.now() - startNormal;
 
-  await page.waitForTimeout(1000);
   await products.navigate();
+  await expect(page.locator('a[href="/"]').first()).toBeVisible();
 
   // Test chain click performance and reliability
   const startChain = Date.now();

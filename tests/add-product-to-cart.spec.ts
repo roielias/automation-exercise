@@ -31,7 +31,9 @@ test("simple add to cart test", async ({ page }) => {
   }
 
   // Verify confirmation modal appears
-  await expect(page.locator("#cartModal.modal.show")).toBeVisible();
+  const modal = page.locator("#cartModal.modal.show");
+  await modal.waitFor({ state: "visible", timeout: 15000 });
+  await expect(modal).toBeVisible();
 
   // Verify success message in modal
   await expect(page.locator("#cartModal")).toContainText("Added!");

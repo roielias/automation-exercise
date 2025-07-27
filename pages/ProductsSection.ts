@@ -84,6 +84,8 @@ export class ProductsSection {
     let hoverSuccess = false;
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
+        await expect(product).toBeVisible({ timeout: 10000 });
+        await product.scrollIntoViewIfNeeded();
         await product.hover({ timeout: 10000 });
         await this.page.waitForTimeout(2000);
         hoverSuccess = true;
@@ -93,6 +95,9 @@ export class ProductsSection {
           await this.page.waitForTimeout(2000);
         }
       }
+    }
+    if (!hoverSuccess) {
+      throw new Error("Failed to hover over product after 3 attempts.");
     }
 
     if (!hoverSuccess) {

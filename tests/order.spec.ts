@@ -4,7 +4,7 @@ import { CartPage } from "../pages/CartPage";
 import { CheckoutPage } from "../pages/CheckoutPage";
 import { LoginPage } from "../pages/LoginPage";
 
-test.setTimeout(120000);
+test.setTimeout(300000);
 
 /**
  * Complete end-to-end order placement test
@@ -56,7 +56,9 @@ test("place order with correct total and confirmation", async ({ page }) => {
 
     if (cartItems.length === 1 && cartItems[0].quantity === 1) {
       await products.navigate();
-      await page.waitForTimeout(5000);
+      await expect(page.locator(".single-products").first()).toBeVisible({
+        timeout: 10000,
+      });
       await products.addProductToCart(1);
       await page.waitForTimeout(5000);
     }
