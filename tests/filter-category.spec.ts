@@ -24,8 +24,6 @@ test("dynamically filters all categories and validates product visibility", asyn
       const currentParent = page.locator("#accordian > .panel").nth(i);
       const categoryLink = currentParent.locator("a").first();
 
-      console.log(`🧪 Testing parent category: ${parentName}`);
-
       if (await categoryLink.isVisible()) {
         await categoryLink.click();
       } else {
@@ -35,9 +33,7 @@ test("dynamically filters all categories and validates product visibility", asyn
       await expect(currentParent.locator(".panel-collapse")).toHaveClass(/in/);
 
       const currentSub = currentParent.locator(".panel-collapse a").nth(j);
-      const subName = (await currentSub.textContent())?.trim() || "Unknown";
-
-      console.log(`🔹 Checking subcategory: ${parentName} → ${subName}`);
+      (await currentSub.textContent())?.trim() || "Unknown";
 
       if (await currentSub.isVisible()) {
         await currentSub.click();
@@ -48,14 +44,6 @@ test("dynamically filters all categories and validates product visibility", asyn
       await page.waitForSelector(".productinfo > p", { state: "visible" });
 
       const titles = await homePage.getVisibleProductsTitles();
-      console.log(
-        `📦 Found ${titles.length} products for ${parentName} > ${subName}`
-      );
-      console.log(
-        `📦 ${parentName} > ${subName} → ${
-          titles.length
-        } products: [${titles.join(", ")}]`
-      );
 
       expect(titles.length).toBeGreaterThan(0);
     }
