@@ -2,10 +2,8 @@
 # Playwright
 node_modules/
 /test-results/
-/playwright-report/
 /blob-report/
 /playwright/.cache/
-# Playwright reports and test results
 test-results/
 error-screenshot-*.png
 *.png
